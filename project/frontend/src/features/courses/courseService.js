@@ -1,23 +1,35 @@
-import api from '../../app/api'
+import axios from 'axios'
 
-const getCourses = async () => {
-  const { data } = await api.get('/courses')
-  return data
+const API_URL = '/api/courses/'
+
+const getConfig = (token) => {
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
 }
 
-const createCourse = async (payload) => {
-  const { data } = await api.post('/courses', payload)
-  return data
+const getCourses = async (token) => {
+  const response = await axios.get(API_URL, getConfig(token))
+  return response.data
 }
 
-const updateCourse = async (id, payload) => {
-  const { data } = await api.put(`/courses/${id}`, payload)
-  return data
+const createCourse = async (courseData, token) => {
+  const response = await axios.post(API_URL, courseData, getConfig(token))
+  return response.data
 }
 
-const deleteCourse = async (id) => {
-  const { data } = await api.delete(`/courses/${id}`)
-  return data
+const updateCourse = async (id, courseData, token) => {
+  const response = await axios.put(API_URL + id, courseData, getConfig(token))
+  return response.data
 }
 
-export default { getCourses, createCourse, updateCourse, deleteCourse }
+const deleteCourse = async (id, token) => {
+  const response = await axios.delete(API_URL + id, getConfig(token))
+  return response.data
+}
+
+const courseService = { getCourses, createCourse, updateCourse, deleteCourse }
+
+export default courseService

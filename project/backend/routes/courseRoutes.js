@@ -2,16 +2,13 @@ const express = require('express')
 const router = express.Router()
 const {
   getCourses,
-  getCourse,
   createCourse,
   updateCourse,
   deleteCourse,
 } = require('../controllers/courseController')
 const { protect } = require('../middleware/authMiddleware')
 
-router.use(protect)
-
-router.route('/').get(getCourses).post(createCourse)
-router.route('/:id').get(getCourse).put(updateCourse).delete(deleteCourse)
+router.route('/').get(protect, getCourses).post(protect, createCourse)
+router.route('/:id').put(protect, updateCourse).delete(protect, deleteCourse)
 
 module.exports = router

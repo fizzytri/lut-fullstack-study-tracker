@@ -1,78 +1,72 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import sessionService from './sessionService'
-import { extractError } from '../../app/api'
 
 const initialState = {
-  items: [],
-  isLoading: false,
+  sessions: [],
   isError: false,
+  isLoading: false,
   message: '',
 }
 
-export const fetchSessions = createAsyncThunk('sessions/fetch', async (params, thunkAPI) => {
+const getMessage = (error) => {
+  if (error.response && error.response.data && error.response.data.message) {
+    return error.response.data.message
+  }
+
+  return error.message
+}
+
+export const getSessions = createAsyncThunk('sessions/getAll', async (courseId, thunkAPI) => {
   try {
-    return await sessionService.getSessions(params)
+    const token = thunkAPI.getState().auth.user.token
+    return await sessionService.getSessions(courseId, token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-export const addSession = createAsyncThunk('sessions/add', async (payload, thunkAPI) => {
+export const createSession = createAsyncThunk('sessions/create', async (sessionData, thunkAPI) => {
   try {
-    return await sessionService.createSession(payload)
+    const token = thunkAPI.getState().auth.user.token
+    return await sessionService.createSession(sessionData, token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-export const editSession = createAsyncThunk('sessions/edit', async ({ id, payload }, thunkAPI) => {
+export const deleteSession = createAsyncThunk('sessions/delete', async (id, thunkAPI) => {
   try {
-    return await sessionService.updateSession(id, payload)
+    const token = thunkAPI.getState().auth.user.token
+    return await sessionService.deleteSession(id, token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-export const removeSession = createAsyncThunk('sessions/remove', async (id, thunkAPI) => {
-  try {
-    return await sessionService.deleteSession(id)
-  } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
-  }
-})
-
-const sessionSlice = createSlice({
+export const sessionSlice = createSlice({
   name: 'sessions',
   initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchSessions.pending, (state) => {
+      .addCase(getSessions.pending, (state) => {
         state.isLoading = true
       })
-      .addCase(fetchSessions.fulfilled, (state, action) => {
+      .addCase(getSessions.fulfilled, (state, action) => {
         state.isLoading = false
-        state.items = action.payload
+        state.sessions = action.payload
       })
-      .addCase(addSession.fulfilled, (state, action) => {
-        state.items.unshift(action.payload)
+      .addCase(getSessions.rejected, (state, action) => {
+        state.isLoading = false
+        state.isError = true
+        state.message = action.payload
       })
-      .addCase(editSession.fulfilled, (state, action) => {
-        state.items = state.items.map((item) =>
-          item._id === action.payload._id ? action.payload : item
-        )
+      .addCase(createSession.fulfilled, (state, action) => {
+        state.sessions.unshift(action.payload)
       })
-      .addCase(removeSession.fulfilled, (state, action) => {
-        state.items = state.items.filter((item) => item._id !== action.payload.id)
+      .addCase(deleteSession.fulfilled, (state, action) => {
+        state.sessions = state.sessions.filter((session) => session._id !== action.payload.id)
       })
-      .addMatcher(
-        (action) => action.type.startsWith('sessions/') && action.type.endsWith('/rejected'),
-        (state, action) => {
-          state.isLoading = false
-          state.isError = true
-          state.message = action.payload
-        }
-      )
   },
 })
 

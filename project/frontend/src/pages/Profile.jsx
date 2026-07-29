@@ -7,25 +7,30 @@ import { formatMinutes } from '../utils/format'
 const Profile = () => {
   const { user } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
-  const [form, setForm] = useState({
+
+  const [formData, setFormData] = useState({
     name: user.name,
     weeklyTargetMinutes: user.weeklyTargetMinutes,
   })
 
-  const onChange = (event) =>
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }))
+  const onChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
 
-  const onSubmit = async (event) => {
-    event.preventDefault()
+  const onSubmit = async (e) => {
+    e.preventDefault()
 
-    const action = await dispatch(
-      updateProfile({ ...form, weeklyTargetMinutes: Number(form.weeklyTargetMinutes) })
-    )
+    const profileData = {
+      name: formData.name,
+      weeklyTargetMinutes: Number(formData.weeklyTargetMinutes),
+    }
 
-    if (action.meta.requestStatus === 'fulfilled') {
+    const result = await dispatch(updateProfile(profileData))
+
+    if (result.meta.requestStatus === 'fulfilled') {
       toast.success('Profile updated')
     } else {
-      toast.error(action.payload)
+      toast.error(result.payload)
     }
   }
 
@@ -36,7 +41,7 @@ const Profile = () => {
 
       <form onSubmit={onSubmit}>
         <label htmlFor="name">Name</label>
-        <input id="name" name="name" value={form.name} onChange={onChange} required />
+        <input id="name" name="name" value={formData.name} onChange={onChange} required />
 
         <label htmlFor="weeklyTargetMinutes">Weekly target (minutes)</label>
         <input
@@ -45,10 +50,12 @@ const Profile = () => {
           name="weeklyTargetMinutes"
           min="0"
           step="30"
-          value={form.weeklyTargetMinutes}
+          value={formData.weeklyTargetMinutes}
           onChange={onChange}
         />
-        <span className="muted">That is {formatMinutes(Number(form.weeklyTargetMinutes))} per week.</span>
+        <span className="muted">
+          That is {formatMinutes(Number(formData.weeklyTargetMinutes))} per week.
+        </span>
 
         <button type="submit" className="btn btn-primary btn-block">
           Save

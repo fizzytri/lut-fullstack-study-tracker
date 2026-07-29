@@ -1,8 +1,18 @@
-import api from '../../app/api'
+import axios from 'axios'
 
-const getSummary = async (days = 30) => {
-  const { data } = await api.get('/stats/summary', { params: { days } })
-  return data
+const API_URL = '/api/stats/'
+
+const getSummary = async (days, token) => {
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
+
+  const response = await axios.get(API_URL + 'summary?days=' + days, config)
+  return response.data
 }
 
-export default { getSummary }
+const statsService = { getSummary }
+
+export default statsService

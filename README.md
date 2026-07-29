@@ -1,77 +1,68 @@
 # LUT Software Development Skills: Full-Stack
 
-Coursework and final project for the LUT anytime course
-**Software Development Skills: Full-Stack (2025-26)**.
+My coursework and project for the LUT anytime course
+*Software Development Skills: Full-Stack (2025-26)*.
 
-| Folder | Contents |
-| --- | --- |
-| [`Coursework/`](Coursework) | Exercise projects coded along with the five tutorial modules |
-| [`project/`](project) | **Study Tracker** - the MERN project |
-| [`VIDEO.md`](VIDEO.md) | Link to the demo video of the project running |
-
----
+- `Coursework/` - the exercise projects I did while going through the five tutorial modules
+- `project/` - **Study Tracker**, the MERN project
+- `VIDEO.md` - link to the video of the project running
 
 ## The project: Study Tracker
 
-A MERN application for logging study time, tracking courses and hitting weekly targets.
-It is not the course example project: the domain, data model, statistics API and UI are original.
-The MERN patterns practised in `Coursework/05-mern` (JWT auth, protected routes, ownership checks)
-are reused here, as the course material allows.
+An app for keeping track of how much I actually study. You add your courses, log study sessions
+against them, set goals, and the dashboard shows where the time went.
 
-### Features
+I picked this instead of extending the example project because I wanted something I would use
+myself, and because the dashboard gave me a reason to practise fetching and combining data
+rather than just listing it.
 
-- **Authentication** - register and log in, passwords hashed with bcrypt, JWT bearer tokens,
-  protected React routes and protected API routes
-- **Courses** - full CRUD, per-user unique course codes, credits, semester, status, colour tag
-- **Study sessions** - log minutes against a course with activity type, focus rating and notes;
-  filter the history by course
-- **Goals** - set a minute target and a deadline, optionally scoped to one course; progress is
-  computed server-side from the sessions inside the goal window
-- **Dashboard** - MongoDB aggregation pipelines produce a daily timeline, time per course, an
-  activity split, average focus, a current study streak and weekly-target progress; charts drawn
-  with Recharts
-- **Profile** - editable name and weekly study target
+### What it does
 
-### Tech stack
+- Register and log in. Passwords are hashed with bcrypt and the API hands back a JWT.
+- Add, edit and delete courses (code, name, credits, semester, status, a colour).
+- Log study sessions on a course: minutes, date, activity type, a focus rating and notes.
+  The session list can be filtered by course.
+- Set goals with a minute target and a deadline, either for one course or for everything.
+  The API adds up the matching sessions to work out the progress.
+- A dashboard with total time, session count, study streak, weekly target progress, a bar chart
+  of minutes per day, and breakdowns per course and per activity.
+- A profile page for changing your name and your weekly target.
 
-| Layer | Choices |
-| --- | --- |
-| Database | MongoDB, Mongoose 8 (schema validation, refs, indexes, aggregation) |
-| API | Node.js 18+, Express 4, JWT, bcryptjs, express-async-handler, central error middleware |
-| Client | React 18, Vite, Redux Toolkit, React Router 6, Axios, Recharts, React Toastify |
+### Built with
 
-### Architecture
+- **MongoDB + Mongoose** for the database
+- **Express** for the API
+- **React** with **Redux Toolkit**, React Router, Axios, Recharts and React Toastify
+- **Vite** for the dev server and the build
+
+### How the folders are organised
 
 ```
 project/
 ├── backend/
-│   ├── config/db.js            Mongoose connection
-│   ├── models/                 User, Course, Session, Goal
-│   ├── controllers/            Request handling + ownership checks
-│   ├── routes/                 Express routers, protect applied per router
-│   ├── middleware/             JWT auth, 404 and error handler
-│   ├── app.js                  Express app factory (used by server and tests)
-│   ├── server.js               Entry point
-│   └── seed.js                 Demo data
-└── frontend/
-    └── src/
-        ├── app/                Redux store, axios instance with token interceptor
-        ├── features/           auth, courses, sessions, goals, stats slices + services
-        ├── components/         Header, PrivateRoute, StatCard, Spinner
-        ├── pages/              Dashboard, Courses, Sessions, Goals, Login, Register, Profile
-        └── utils/format.js
+│   ├── config/db.js        connects to MongoDB
+│   ├── models/             User, Course, Session, Goal
+│   ├── controllers/        what each route actually does
+│   ├── routes/             the URLs
+│   ├── middleware/         checks the JWT, handles errors
+│   ├── server.js           starts everything
+│   └── seed.js             fills the database with demo data
+└── frontend/src/
+    ├── app/store.js        the Redux store
+    ├── features/           one folder per thing: auth, courses, sessions, goals, stats
+    ├── components/         Header, Spinner, StatCard, PrivateRoute
+    ├── pages/              Dashboard, Courses, Sessions, Goals, Login, Register, Profile
+    └── utils/format.js
 ```
 
----
+Each `features/` folder has a `Service` file that talks to the API with axios, and a `Slice` file
+with the Redux state and the thunks.
 
-## Running the project
+## Running it
 
-### Prerequisites
+You need Node.js and MongoDB (either installed locally or a free MongoDB Atlas database).
 
-- Node.js 18 or newer
-- MongoDB running locally, or a MongoDB Atlas connection string
-
-### 1. Install dependencies
+### 1. Install
 
 ```bash
 git clone https://github.com/fizzytri/lut-fullstack-study-tracker.git
@@ -79,125 +70,91 @@ cd lut-fullstack-study-tracker
 npm run install-all
 ```
 
-Or install each side separately:
-
-```bash
-cd project/backend  && npm install
-cd ../frontend      && npm install
-```
-
-### 2. Configure the backend
+That runs `npm install` in both `project/backend` and `project/frontend`. You can also do it
+by hand:
 
 ```bash
 cd project/backend
-cp .env.example .env
+npm install
+cd ../frontend
+npm install
 ```
 
-Then edit `.env`:
+### 2. Make the .env file
 
-```ini
+In `project/backend`, copy `.env.example` to `.env` and fill it in:
+
+```
 NODE_ENV=development
 PORT=5000
 MONGO_URI=mongodb://127.0.0.1:27017/studytracker
-JWT_SECRET=any_long_random_string
-JWT_EXPIRES_IN=30d
-CLIENT_URL=http://localhost:5173
+JWT_SECRET=some_long_random_string
 ```
 
-### 3. Optional: load demo data
+`JWT_SECRET` can be anything, it just needs to be long and not shared.
+
+### 3. Demo data (optional)
 
 ```bash
-npm run seed --prefix project/backend
+npm run seed
 ```
 
-Creates a demo account with 30 days of sessions:
+This wipes the database and creates a demo account with a month of sessions:
 
 ```
-email:    demo@studytracker.dev
-password: demopassword
+demo@studytracker.dev / demopassword
 ```
 
-### 4. Start both servers
+### 4. Start it
 
-Two terminals from the repository root:
+Two terminals, both from the repo root:
 
 ```bash
-npm run server     # API   -> http://localhost:5000
-npm run client     # React -> http://localhost:5173
+npm run server    # API on http://localhost:5000
+npm run client    # app on http://localhost:5173
 ```
 
-Open <http://localhost:5173>. Vite proxies `/api` to port 5000, so no CORS setup is needed
-in development.
+Then open http://localhost:5173. The Vite dev server forwards `/api` to port 5000, so you don't
+have to worry about CORS while developing.
 
-### Production build
+## The API
 
-```bash
-npm run build                                   # builds project/frontend/dist
-NODE_ENV=production npm run server              # Express serves the built client
-```
+Everything is under `/api`. All of it needs an `Authorization: Bearer <token>` header except
+register and login.
 
----
-
-## API reference
-
-All routes are prefixed with `/api`. Everything except register, login and health requires an
-`Authorization: Bearer <token>` header.
-
-| Method | Endpoint | Description |
+| Method | Route | What it does |
 | --- | --- | --- |
-| GET | `/health` | Service status |
-| POST | `/users` | Register, returns the user and a token |
-| POST | `/users/login` | Log in, returns the user and a token |
-| GET | `/users/me` | Current user |
-| PUT | `/users/me` | Update name and weekly target |
-| GET | `/courses` | List courses, optional `?status=` |
-| POST | `/courses` | Create a course |
-| GET | `/courses/:id` | Single course |
-| PUT | `/courses/:id` | Update a course |
-| DELETE | `/courses/:id` | Delete a course and its sessions and goals |
-| GET | `/sessions` | List sessions, optional `?course=`, `?from=`, `?to=`, `?limit=` |
-| POST | `/sessions` | Log a session |
-| PUT | `/sessions/:id` | Update a session |
-| DELETE | `/sessions/:id` | Delete a session |
-| GET | `/goals` | List goals with computed progress |
-| POST | `/goals` | Create a goal |
-| PUT | `/goals/:id` | Update a goal |
-| DELETE | `/goals/:id` | Delete a goal |
-| GET | `/stats/summary` | Dashboard aggregation, optional `?days=` (default 30) |
+| POST | `/users` | register |
+| POST | `/users/login` | log in |
+| GET | `/users/me` | the logged in user |
+| PUT | `/users/me` | update name / weekly target |
+| GET | `/courses` | list courses |
+| POST | `/courses` | add a course |
+| PUT | `/courses/:id` | edit a course |
+| DELETE | `/courses/:id` | delete a course and its sessions and goals |
+| GET | `/sessions` | list sessions, `?course=<id>` to filter |
+| POST | `/sessions` | log a session |
+| PUT | `/sessions/:id` | edit a session |
+| DELETE | `/sessions/:id` | delete a session |
+| GET | `/goals` | list goals with their progress |
+| POST | `/goals` | add a goal |
+| PUT | `/goals/:id` | edit a goal |
+| DELETE | `/goals/:id` | delete a goal |
+| GET | `/stats/summary` | the dashboard numbers, `?days=7` or `?days=30` |
 
-Errors return `{ "message": "..." }` with `400` for validation, `401` for authentication,
-`403` for ownership and `404` for missing documents.
+Errors come back as `{ "message": "..." }`.
 
----
+## Things I would improve
 
-## Tests
+- The stats endpoint loads all the sessions in the range and adds them up in JavaScript.
+  That is fine for one student, but doing it with aggregation on the database would scale better.
+- There are no automated tests. I tested everything by hand in the browser.
+- The token sits in localStorage, which is what the tutorial does, but I read that a httpOnly
+  cookie is safer.
 
-The backend ships an integration test suite that boots the Express app against an in-memory
-MongoDB instance and covers registration, login, token protection, ownership rules, CRUD,
-cascade deletes and the statistics aggregation.
+## Credit
 
-```bash
-npm test --prefix project/backend
-```
-
-The first run downloads a `mongod` binary via `mongodb-memory-server`, so it needs internet
-access. On a machine where that download is blocked, point `MONGOMS_SYSTEM_BINARY` at a local
-`mongod` instead.
-
----
-
-## Coursework
-
-`Coursework/` holds the exercise projects from the tutorial series, one folder per module,
-each with its own `NOTES.md` and run instructions. See
-[`Coursework/README.md`](Coursework/README.md).
-
----
-
-## Attribution
-
-- The MERN example project from the course material
-  (<https://github.com/bradtraversy/mern-tutorial>) and the Express crash course source
-  (<https://github.com/bradtraversy/express-crash>) were followed for the exercise modules.
-  The course grants permission to reuse this example code.
-- The Study Tracker application code is original work built on those patterns.
+I followed the tutorials linked in the Moodle course, mainly the MERN example project
+(https://github.com/bradtraversy/mern-tutorial) and the Express crash course
+(https://github.com/bradtraversy/express-crash). The course says the example code can be reused.
+The Study Tracker itself is my own, built with the patterns from those tutorials.

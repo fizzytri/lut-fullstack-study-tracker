@@ -1,26 +1,28 @@
 # Module 4 - React
 
-Exercises coded along with the React crash course and the React docs from the course material.
+Notes from coding along with the React crash course and the React docs.
 
-## What is covered
+## What I practised
 
-- Function components, JSX, props with default values (`Counter`)
-- `useState` with the functional updater form, so batched updates stay correct
-- Rendering lists with stable `key` props (`TaskList` / `TaskItem`)
-- Controlled form inputs and lifting state up to `App` (`TaskForm`)
-- `useEffect` with cleanup: debounce timer plus `AbortController` on a real fetch (`UserSearch`)
-- `useContext` and `useMemo` for a small theme provider
+- Function components and JSX
+- `useState` for the counter and the task list
+- Rendering a list with `.map()` and giving each item a `key`
+- Passing props down and passing functions back up (`onAdd`, `onToggle`, `onDelete`)
+- Controlled inputs, where the value comes from state
+- `useEffect` with a dependency array to fetch data when the query changes
 
 ## How to run
 
 ```bash
 npm install
-npm run dev        # http://localhost:5174
+npm run dev      # http://localhost:5174
 ```
 
-## Takeaways
+## What I learned
 
-- Cleanup functions are not optional: without the `AbortController` the search results arrive out
-  of order when typing fast.
-- Lifting state up is what pushed the Study Tracker to Redux Toolkit: once four pages need the same
-  course list, prop drilling stops scaling.
+Keeping the tasks in `App` and passing handlers down took a while to click. Once four different
+components need the same data it starts to feel messy, which is apparently why Redux exists -
+that comes up in the next module.
+
+The GitHub search fires a request on every keystroke. That is fine for an exercise but I would
+want to slow it down in a real app.

@@ -2,53 +2,61 @@ import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 import { FaTrash, FaCheck, FaUndo } from 'react-icons/fa'
-import { fetchGoals, addGoal, toggleGoal, removeGoal } from '../features/goals/goalSlice'
-import { fetchCourses } from '../features/courses/courseSlice'
+import { getGoals, createGoal, updateGoal, deleteGoal } from '../features/goals/goalSlice'
+import { getCourses } from '../features/courses/courseSlice'
 import Spinner from '../components/Spinner'
-import { formatMinutes, formatDate, daysUntil } from '../utils/format'
+import { formatMinutes, formatDate } from '../utils/format'
 
-const defaultDeadline = () => {
+const twoWeeksFromNow = () => {
   const date = new Date()
   date.setDate(date.getDate() + 14)
   return date.toISOString().slice(0, 10)
 }
 
 const Goals = () => {
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     title: '',
     targetMinutes: 600,
-    deadline: defaultDeadline(),
+    deadline: twoWeeksFromNow(),
     course: '',
   })
 
   const dispatch = useDispatch()
-  const { items, isLoading } = useSelector((state) => state.goals)
-  const { items: courses } = useSelector((state) => state.courses)
+  const { goals, isLoading } = useSelector((state) => state.goals)
+  const { courses } = useSelector((state) => state.courses)
 
   useEffect(() => {
-    dispatch(fetchGoals())
-    dispatch(fetchCourses())
+    dispatch(getGoals())
+    dispatch(getCourses())
   }, [dispatch])
 
-  const onChange = (event) =>
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }))
+  const onChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
 
-  const onSubmit = async (event) => {
-    event.preventDefault()
+  const onSubmit = async (e) => {
+    e.preventDefault()
 
-    const action = await dispatch(
-      addGoal({ ...form, targetMinutes: Number(form.targetMinutes), course: form.course || null })
-    )
+    const goalData = {
+      title: formData.title,
+      targetMinutes: Number(formData.targetMinutes),
+      deadline: formData.deadline,
+      course: formData.course || null,
+    }
 
-    if (action.meta.requestStatus === 'fulfilled') {
+    const result = await dispatch(createGoal(goalData))
+
+    if (result.meta.requestStatus === 'fulfilled') {
       toast.success('Goal created')
-      setForm({ title: '', targetMinutes: 600, deadline: defaultDeadline(), course: '' })
+      setFormData({ title: '', targetMinutes: 600, deadline: twoWeeksFromNow(), course: '' })
     } else {
-      toast.error(action.payload)
+      toast.error(result.payload)
     }
   }
 
-  if (isLoading && items.length === 0) return <Spinner />
+  if (isLoading && goals.length === 0) {
+    return <Spinner />
+  }
 
   return (
     <section>
@@ -61,10 +69,11 @@ const Goals = () => {
 
       <div className="card">
         <h2>New goal</h2>
+
         <form onSubmit={onSubmit} className="grid-form">
           <div className="span-2">
             <label htmlFor="title">Title</label>
-            <input id="title" name="title" value={form.title} onChange={onChange} required />
+            <input id="title" name="title" value={formData.title} onChange={onChange} required />
           </div>
 
           <div>
@@ -74,7 +83,7 @@ const Goals = () => {
               type="number"
               name="targetMinutes"
               min="1"
-              value={form.targetMinutes}
+              value={formData.targetMinutes}
               onChange={onChange}
               required
             />
@@ -86,7 +95,7 @@ const Goals = () => {
               id="deadline"
               type="date"
               name="deadline"
-              value={form.deadline}
+              value={formData.deadline}
               onChange={onChange}
               required
             />
@@ -94,7 +103,7 @@ const Goals = () => {
 
           <div>
             <label htmlFor="goal-course">Course</label>
-            <select id="goal-course" name="course" value={form.course} onChange={onChange}>
+            <select id="goal-course" name="course" value={formData.course} onChange={onChange}>
               <option value="">All courses</option>
               {courses.map((course) => (
                 <option key={course._id} value={course._id}>
@@ -113,52 +122,49 @@ const Goals = () => {
       </div>
 
       <div className="goal-grid">
-        {items.length === 0 ? (
+        {goals.length === 0 ? (
           <p className="muted">No goals yet.</p>
         ) : (
-          items.map((goal) => {
-            const left = daysUntil(goal.deadline)
+          goals.map((goal) => (
+            <article key={goal._id} className={goal.completed ? 'card goal-card done' : 'card goal-card'}>
+              <h3>{goal.title}</h3>
+              <p className="muted">{goal.course ? goal.course.code : 'All courses'}</p>
 
-            return (
-              <article key={goal._id} className={`card goal-card ${goal.completed ? 'done' : ''}`}>
-                <header>
-                  <h3>{goal.title}</h3>
-                  <span className="muted">{goal.course ? goal.course.code : 'All courses'}</span>
-                </header>
+              <span className="bar-track">
+                <span className="bar-fill" style={{ width: goal.progress + '%' }} />
+              </span>
 
-                <span className="bar-track">
-                  <span className="bar-fill" style={{ width: `${goal.progress}%` }} />
-                </span>
+              <p className="muted">
+                {formatMinutes(goal.achievedMinutes)} of {formatMinutes(goal.targetMinutes)} (
+                {goal.progress}%)
+              </p>
 
-                <p className="muted">
-                  {formatMinutes(goal.achievedMinutes)} of {formatMinutes(goal.targetMinutes)} ({goal.progress}%)
-                </p>
+              <p className="muted">Due {formatDate(goal.deadline)}</p>
 
-                <p className="muted">
-                  Due {formatDate(goal.deadline)}
-                  {!goal.completed && (left >= 0 ? ` - ${left} days left` : ' - overdue')}
-                </p>
+              <div className="row-actions">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() =>
+                    dispatch(
+                      updateGoal({ id: goal._id, goalData: { completed: !goal.completed } })
+                    )
+                  }
+                >
+                  {goal.completed ? <FaUndo /> : <FaCheck />}
+                  {goal.completed ? ' Reopen' : ' Complete'}
+                </button>
 
-                <div className="row-actions">
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    onClick={() => dispatch(toggleGoal({ id: goal._id, completed: !goal.completed }))}
-                  >
-                    {goal.completed ? <FaUndo /> : <FaCheck />}
-                    {goal.completed ? ' Reopen' : ' Complete'}
-                  </button>
-                  <button
-                    type="button"
-                    className="icon-btn danger"
-                    onClick={() => dispatch(removeGoal(goal._id))}
-                  >
-                    <FaTrash />
-                  </button>
-                </div>
-              </article>
-            )
-          })
+                <button
+                  type="button"
+                  className="icon-btn danger"
+                  onClick={() => dispatch(deleteGoal(goal._id))}
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            </article>
+          ))
         )}
       </div>
     </section>

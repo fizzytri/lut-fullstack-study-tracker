@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { FaSignOutAlt, FaSignInAlt, FaUserPlus, FaBookOpen } from 'react-icons/fa'
 import { logout } from '../features/auth/authSlice'
@@ -16,30 +16,30 @@ const Header = () => {
   return (
     <header className="header">
       <div className="container header-inner">
-        <NavLink to="/" className="brand">
+        <Link to="/" className="brand">
           <FaBookOpen /> Study Tracker
-        </NavLink>
+        </Link>
 
         <nav className="nav">
           {user ? (
             <>
-              <NavLink to="/">Dashboard</NavLink>
-              <NavLink to="/courses">Courses</NavLink>
-              <NavLink to="/sessions">Sessions</NavLink>
-              <NavLink to="/goals">Goals</NavLink>
-              <NavLink to="/profile">{user.name.split(' ')[0]}</NavLink>
+              <Link to="/">Dashboard</Link>
+              <Link to="/courses">Courses</Link>
+              <Link to="/sessions">Sessions</Link>
+              <Link to="/goals">Goals</Link>
+              <Link to="/profile">Profile</Link>
               <button type="button" className="btn btn-ghost" onClick={onLogout}>
                 <FaSignOutAlt /> Log out
               </button>
             </>
           ) : (
             <>
-              <NavLink to="/login">
+              <Link to="/login">
                 <FaSignInAlt /> Log in
-              </NavLink>
-              <NavLink to="/register">
+              </Link>
+              <Link to="/register">
                 <FaUserPlus /> Register
-              </NavLink>
+              </Link>
             </>
           )}
         </nav>

@@ -1,24 +1,25 @@
 # Module 1 - Node.js
 
-Exercises coded along with the Node.js crash course from the course material.
+Notes from coding along with the Node.js crash course.
 
-## What is covered
+## What I practised
 
-- CommonJS modules: `module.exports` / `require` (`people.js`, `logger.js`, `fileTasks.js`)
-- Core modules: `os`, `path`, `fs`, `fs/promises`, `events`, `crypto`, `http`
-- Classes and a custom `EventEmitter` subclass (`Logger`)
-- Callback, promise and stream based file access
-- A bare HTTP server without Express, so the difference to module 3 is visible
+- Splitting code into modules with `module.exports` and `require`
+- Core modules: `os`, `path`, `fs`, `events`, `http`
+- Making a class and a class that extends `EventEmitter`
+- Reading and writing files, first with callbacks and then with promises
+- Building a small HTTP server with no framework
 
 ## How to run
 
 ```bash
-node index.js     # module + fs + events demo, writes data/report.txt
-node server.js    # core http server on http://localhost:4001
+node index.js     # writes data/report.txt and logs to the console
+node server.js    # http server on http://localhost:4001
 ```
 
-## Takeaways
+## What I learned
 
-- `fs/promises` removes callback nesting; streams matter once files stop being small.
-- `EventEmitter` is the pattern behind most of Node core, including `http` and streams.
-- Writing routing by hand in `server.js` explains why Express exists.
+Doing the routing by hand in `server.js` was annoying - you have to check `req.url` and
+`req.method` yourself for every route. That made it obvious why Express exists.
+
+`EventEmitter` also showed up again later in streams, so it seems to be everywhere in Node.

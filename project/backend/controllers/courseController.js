@@ -4,60 +4,37 @@ const Session = require('../models/sessionModel')
 const Goal = require('../models/goalModel')
 
 const getCourses = asyncHandler(async (req, res) => {
-  const filter = { user: req.user._id }
-
-  if (req.query.status) {
-    filter.status = req.query.status
-  }
-
-  const courses = await Course.find(filter).sort({ createdAt: -1 })
+  const courses = await Course.find({ user: req.user.id }).sort({ createdAt: -1 })
 
   res.json(courses)
 })
 
-const getCourse = asyncHandler(async (req, res) => {
-  const course = await Course.findById(req.params.id)
-
-  if (!course) {
-    res.status(404)
-    throw new Error('Course not found')
-  }
-
-  if (course.user.toString() !== req.user._id.toString()) {
-    res.status(403)
-    throw new Error('Not authorised to view this course')
-  }
-
-  res.json(course)
-})
-
 const createCourse = asyncHandler(async (req, res) => {
-  const { code, name, credits, semester, status, targetGrade, colour } = req.body
+  const { code, name, credits } = req.body
 
-  if (!code || !name || credits === undefined) {
+  if (!code || !name || !credits) {
     res.status(400)
-    throw new Error('Please provide a code, name and credits')
+    throw new Error('Please add a code, name and credits')
   }
 
-  const duplicate = await Course.findOne({
-    user: req.user._id,
+  const courseExists = await Course.findOne({
+    user: req.user.id,
     code: code.toUpperCase(),
   })
 
-  if (duplicate) {
+  if (courseExists) {
     res.status(400)
     throw new Error('You already have a course with that code')
   }
 
   const course = await Course.create({
-    user: req.user._id,
-    code,
+    user: req.user.id,
+    code: code.toUpperCase(),
     name,
     credits,
-    semester,
-    status,
-    targetGrade,
-    colour,
+    semester: req.body.semester,
+    status: req.body.status,
+    colour: req.body.colour,
   })
 
   res.status(201).json(course)
@@ -71,17 +48,16 @@ const updateCourse = asyncHandler(async (req, res) => {
     throw new Error('Course not found')
   }
 
-  if (course.user.toString() !== req.user._id.toString()) {
+  if (course.user.toString() !== req.user.id) {
     res.status(403)
-    throw new Error('Not authorised to update this course')
+    throw new Error('Not authorized')
   }
 
-  const updated = await Course.findByIdAndUpdate(req.params.id, req.body, {
+  const updatedCourse = await Course.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
-    runValidators: true,
   })
 
-  res.json(updated)
+  res.json(updatedCourse)
 })
 
 const deleteCourse = asyncHandler(async (req, res) => {
@@ -92,16 +68,16 @@ const deleteCourse = asyncHandler(async (req, res) => {
     throw new Error('Course not found')
   }
 
-  if (course.user.toString() !== req.user._id.toString()) {
+  if (course.user.toString() !== req.user.id) {
     res.status(403)
-    throw new Error('Not authorised to delete this course')
+    throw new Error('Not authorized')
   }
 
-  await Session.deleteMany({ course: course._id })
-  await Goal.deleteMany({ course: course._id })
+  await Session.deleteMany({ course: course.id })
+  await Goal.deleteMany({ course: course.id })
   await course.deleteOne()
 
   res.json({ id: req.params.id })
 })
 
-module.exports = { getCourses, getCourse, createCourse, updateCourse, deleteCourse }
+module.exports = { getCourses, createCourse, updateCourse, deleteCourse }

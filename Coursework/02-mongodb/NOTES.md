@@ -1,31 +1,34 @@
 # Module 2 - MongoDB
 
-Exercises coded along with the MongoDB crash course from the course material.
+Notes from coding along with the MongoDB crash course.
 
-## What is covered
+## What I practised
 
-- Connecting with Mongoose, environment based connection string
-- Schemas, validation rules, `timestamps`, virtuals
-- Full CRUD: `create`, `find`, `findOne`, `updateOne`, `deleteOne`, `countDocuments`
+- Connecting to MongoDB with Mongoose
+- Writing schemas with required fields, defaults and `timestamps`
+- CRUD: `create`, `find`, `findOne`, `updateOne`, `deleteOne`
 - Query operators: `$gte`, `$gt`, `$lt`, `$in`, `$set`, `$inc`
-- References between collections plus `populate` and `$lookup`
-- Aggregation pipelines: `$group`, `$unwind`, `$project`, `$sort`, `$round`
-- Raw shell queries in `queries.mongodb`
+- Linking two collections with a ref and loading them together with `populate`
+- Grouping with `$group` in an aggregation pipeline
+- Running queries straight in the shell (`queries.mongodb`)
 
 ## How to run
 
-Requires a local `mongod` or a MongoDB Atlas connection string in `.env`:
+Needs MongoDB running locally, or an Atlas connection string in `.env`.
 
 ```bash
 npm install
-MONGO_URI=mongodb://127.0.0.1:27017/coursework node crud.js
-MONGO_URI=mongodb://127.0.0.1:27017/coursework node aggregate.js
+node crud.js
+node aggregate.js
 ```
 
-Windows service troubleshooting is linked in the Moodle material; `mongod --dbpath` also works.
+Getting `mongod` running as a Windows service was the annoying part. The Stack Overflow link in
+the Moodle material helped: https://stackoverflow.com/questions/2438055/how-to-run-mongodb-as-windows-service
 
-## Takeaways
+## What I learned
 
-- `populate` is a second query from the driver, `$lookup` runs server-side; the aggregation version
-  is what the Study Tracker dashboard uses, because grouping happens in the same round trip.
-- Schema validation catches bad data before it reaches the database, but it is Mongoose-level only.
+`populate` is nice but it is really Mongoose doing a second query for you. Aggregation does the
+grouping on the database side instead, which is faster but harder to read.
+
+For my own project I ended up doing most of the counting in plain JavaScript, because I could
+actually follow what was happening.

@@ -1,78 +1,86 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import goalService from './goalService'
-import { extractError } from '../../app/api'
 
 const initialState = {
-  items: [],
-  isLoading: false,
+  goals: [],
   isError: false,
+  isLoading: false,
   message: '',
 }
 
-export const fetchGoals = createAsyncThunk('goals/fetch', async (_, thunkAPI) => {
+const getMessage = (error) => {
+  if (error.response && error.response.data && error.response.data.message) {
+    return error.response.data.message
+  }
+
+  return error.message
+}
+
+export const getGoals = createAsyncThunk('goals/getAll', async (_, thunkAPI) => {
   try {
-    return await goalService.getGoals()
+    const token = thunkAPI.getState().auth.user.token
+    return await goalService.getGoals(token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-export const addGoal = createAsyncThunk('goals/add', async (payload, thunkAPI) => {
+export const createGoal = createAsyncThunk('goals/create', async (goalData, thunkAPI) => {
   try {
-    return await goalService.createGoal(payload)
+    const token = thunkAPI.getState().auth.user.token
+    return await goalService.createGoal(goalData, token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-export const toggleGoal = createAsyncThunk('goals/toggle', async ({ id, completed }, thunkAPI) => {
+export const updateGoal = createAsyncThunk('goals/update', async (data, thunkAPI) => {
   try {
-    return await goalService.updateGoal(id, { completed })
+    const token = thunkAPI.getState().auth.user.token
+    return await goalService.updateGoal(data.id, data.goalData, token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-export const removeGoal = createAsyncThunk('goals/remove', async (id, thunkAPI) => {
+export const deleteGoal = createAsyncThunk('goals/delete', async (id, thunkAPI) => {
   try {
-    return await goalService.deleteGoal(id)
+    const token = thunkAPI.getState().auth.user.token
+    return await goalService.deleteGoal(id, token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-const goalSlice = createSlice({
+export const goalSlice = createSlice({
   name: 'goals',
   initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchGoals.pending, (state) => {
+      .addCase(getGoals.pending, (state) => {
         state.isLoading = true
       })
-      .addCase(fetchGoals.fulfilled, (state, action) => {
+      .addCase(getGoals.fulfilled, (state, action) => {
         state.isLoading = false
-        state.items = action.payload
+        state.goals = action.payload
       })
-      .addCase(addGoal.fulfilled, (state, action) => {
-        state.items.push(action.payload)
+      .addCase(getGoals.rejected, (state, action) => {
+        state.isLoading = false
+        state.isError = true
+        state.message = action.payload
       })
-      .addCase(toggleGoal.fulfilled, (state, action) => {
-        state.items = state.items.map((item) =>
-          item._id === action.payload._id ? action.payload : item
+      .addCase(createGoal.fulfilled, (state, action) => {
+        state.goals.push(action.payload)
+      })
+      .addCase(updateGoal.fulfilled, (state, action) => {
+        state.goals = state.goals.map((goal) =>
+          goal._id === action.payload._id ? action.payload : goal
         )
       })
-      .addCase(removeGoal.fulfilled, (state, action) => {
-        state.items = state.items.filter((item) => item._id !== action.payload.id)
+      .addCase(deleteGoal.fulfilled, (state, action) => {
+        state.goals = state.goals.filter((goal) => goal._id !== action.payload.id)
       })
-      .addMatcher(
-        (action) => action.type.startsWith('goals/') && action.type.endsWith('/rejected'),
-        (state, action) => {
-          state.isLoading = false
-          state.isError = true
-          state.message = action.payload
-        }
-      )
   },
 })
 

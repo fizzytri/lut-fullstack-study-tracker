@@ -1,50 +1,42 @@
 import { useState, useEffect } from 'react'
 
 const UserSearch = () => {
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState('react')
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (query.trim().length < 2) {
-      setUsers([])
-      return undefined
-    }
-
-    const controller = new AbortController()
-    const timer = setTimeout(async () => {
+    const fetchUsers = async () => {
       setLoading(true)
       setError('')
 
       try {
-        const res = await fetch(
-          `https://api.github.com/search/users?q=${encodeURIComponent(query)}&per_page=5`,
-          { signal: controller.signal }
+        const response = await fetch(
+          'https://api.github.com/search/users?q=' + query + '&per_page=5'
         )
 
-        if (!res.ok) throw new Error(`Request failed with ${res.status}`)
+        if (!response.ok) {
+          throw new Error('Request failed with status ' + response.status)
+        }
 
-        const data = await res.json()
-        setUsers(data.items || [])
+        const data = await response.json()
+        setUsers(data.items)
       } catch (err) {
-        if (err.name !== 'AbortError') setError(err.message)
-      } finally {
-        setLoading(false)
+        setError(err.message)
       }
-    }, 400)
 
-    return () => {
-      clearTimeout(timer)
-      controller.abort()
+      setLoading(false)
     }
+
+    fetchUsers()
   }, [query])
 
   return (
     <div>
       <input
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(e) => setQuery(e.target.value)}
         placeholder="Search GitHub users"
       />
 

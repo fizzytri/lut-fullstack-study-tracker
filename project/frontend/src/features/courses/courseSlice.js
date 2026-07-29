@@ -1,78 +1,86 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import courseService from './courseService'
-import { extractError } from '../../app/api'
 
 const initialState = {
-  items: [],
-  isLoading: false,
+  courses: [],
   isError: false,
+  isLoading: false,
   message: '',
 }
 
-export const fetchCourses = createAsyncThunk('courses/fetch', async (_, thunkAPI) => {
+const getMessage = (error) => {
+  if (error.response && error.response.data && error.response.data.message) {
+    return error.response.data.message
+  }
+
+  return error.message
+}
+
+export const getCourses = createAsyncThunk('courses/getAll', async (_, thunkAPI) => {
   try {
-    return await courseService.getCourses()
+    const token = thunkAPI.getState().auth.user.token
+    return await courseService.getCourses(token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-export const addCourse = createAsyncThunk('courses/add', async (payload, thunkAPI) => {
+export const createCourse = createAsyncThunk('courses/create', async (courseData, thunkAPI) => {
   try {
-    return await courseService.createCourse(payload)
+    const token = thunkAPI.getState().auth.user.token
+    return await courseService.createCourse(courseData, token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-export const editCourse = createAsyncThunk('courses/edit', async ({ id, payload }, thunkAPI) => {
+export const updateCourse = createAsyncThunk('courses/update', async (data, thunkAPI) => {
   try {
-    return await courseService.updateCourse(id, payload)
+    const token = thunkAPI.getState().auth.user.token
+    return await courseService.updateCourse(data.id, data.courseData, token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-export const removeCourse = createAsyncThunk('courses/remove', async (id, thunkAPI) => {
+export const deleteCourse = createAsyncThunk('courses/delete', async (id, thunkAPI) => {
   try {
-    return await courseService.deleteCourse(id)
+    const token = thunkAPI.getState().auth.user.token
+    return await courseService.deleteCourse(id, token)
   } catch (error) {
-    return thunkAPI.rejectWithValue(extractError(error))
+    return thunkAPI.rejectWithValue(getMessage(error))
   }
 })
 
-const courseSlice = createSlice({
+export const courseSlice = createSlice({
   name: 'courses',
   initialState,
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchCourses.pending, (state) => {
+      .addCase(getCourses.pending, (state) => {
         state.isLoading = true
       })
-      .addCase(fetchCourses.fulfilled, (state, action) => {
+      .addCase(getCourses.fulfilled, (state, action) => {
         state.isLoading = false
-        state.items = action.payload
+        state.courses = action.payload
       })
-      .addCase(addCourse.fulfilled, (state, action) => {
-        state.items.unshift(action.payload)
+      .addCase(getCourses.rejected, (state, action) => {
+        state.isLoading = false
+        state.isError = true
+        state.message = action.payload
       })
-      .addCase(editCourse.fulfilled, (state, action) => {
-        state.items = state.items.map((item) =>
-          item._id === action.payload._id ? action.payload : item
+      .addCase(createCourse.fulfilled, (state, action) => {
+        state.courses.unshift(action.payload)
+      })
+      .addCase(updateCourse.fulfilled, (state, action) => {
+        state.courses = state.courses.map((course) =>
+          course._id === action.payload._id ? action.payload : course
         )
       })
-      .addCase(removeCourse.fulfilled, (state, action) => {
-        state.items = state.items.filter((item) => item._id !== action.payload.id)
+      .addCase(deleteCourse.fulfilled, (state, action) => {
+        state.courses = state.courses.filter((course) => course._id !== action.payload.id)
       })
-      .addMatcher(
-        (action) => action.type.startsWith('courses/') && action.type.endsWith('/rejected'),
-        (state, action) => {
-          state.isLoading = false
-          state.isError = true
-          state.message = action.payload
-        }
-      )
   },
 })
 

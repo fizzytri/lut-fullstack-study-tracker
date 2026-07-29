@@ -2,7 +2,12 @@ import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 import { FaTrash, FaPen } from 'react-icons/fa'
-import { fetchCourses, addCourse, editCourse, removeCourse } from '../features/courses/courseSlice'
+import {
+  getCourses,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+} from '../features/courses/courseSlice'
 import Spinner from '../components/Spinner'
 
 const emptyForm = {
@@ -11,96 +16,93 @@ const emptyForm = {
   credits: 5,
   semester: 'autumn',
   status: 'planned',
-  targetGrade: 3,
   colour: '#4f46e5',
 }
 
 const Courses = () => {
-  const [form, setForm] = useState(emptyForm)
+  const [formData, setFormData] = useState(emptyForm)
   const [editingId, setEditingId] = useState(null)
+
   const dispatch = useDispatch()
-  const { items, isLoading } = useSelector((state) => state.courses)
+  const { courses, isLoading } = useSelector((state) => state.courses)
 
   useEffect(() => {
-    dispatch(fetchCourses())
+    dispatch(getCourses())
   }, [dispatch])
 
-  const onChange = (event) =>
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }))
+  const onChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
 
   const resetForm = () => {
-    setForm(emptyForm)
+    setFormData(emptyForm)
     setEditingId(null)
   }
 
-  const onSubmit = async (event) => {
-    event.preventDefault()
+  const onSubmit = async (e) => {
+    e.preventDefault()
 
-    const payload = {
-      ...form,
-      credits: Number(form.credits),
-      targetGrade: Number(form.targetGrade),
+    const courseData = { ...formData, credits: Number(formData.credits) }
+
+    let result
+
+    if (editingId) {
+      result = await dispatch(updateCourse({ id: editingId, courseData }))
+    } else {
+      result = await dispatch(createCourse(courseData))
     }
 
-    const action = editingId
-      ? await dispatch(editCourse({ id: editingId, payload }))
-      : await dispatch(addCourse(payload))
-
-    if (action.meta.requestStatus === 'fulfilled') {
+    if (result.meta.requestStatus === 'fulfilled') {
       toast.success(editingId ? 'Course updated' : 'Course added')
       resetForm()
     } else {
-      toast.error(action.payload)
+      toast.error(result.payload)
     }
   }
 
   const onEdit = (course) => {
     setEditingId(course._id)
-    setForm({
+    setFormData({
       code: course.code,
       name: course.name,
       credits: course.credits,
       semester: course.semester,
       status: course.status,
-      targetGrade: course.targetGrade,
       colour: course.colour,
     })
   }
 
-  const onDelete = async (id) => {
-    if (!window.confirm('Delete this course and all its sessions?')) return
-
-    const action = await dispatch(removeCourse(id))
-
-    if (action.meta.requestStatus === 'fulfilled') {
-      toast.success('Course deleted')
-    } else {
-      toast.error(action.payload)
+  const onDelete = (id) => {
+    if (window.confirm('Delete this course and all its sessions?')) {
+      dispatch(deleteCourse(id))
     }
   }
 
-  if (isLoading && items.length === 0) return <Spinner />
+  if (isLoading && courses.length === 0) {
+    return <Spinner />
+  }
 
   return (
     <section>
       <div className="page-head">
         <div>
           <h1>Courses</h1>
-          <p className="muted">Everything you are studying this year.</p>
+          <p className="muted">Everything you are studying.</p>
         </div>
       </div>
 
       <div className="card">
         <h2>{editingId ? 'Edit course' : 'Add a course'}</h2>
+
         <form onSubmit={onSubmit} className="grid-form">
           <div>
             <label htmlFor="code">Code</label>
-            <input id="code" name="code" value={form.code} onChange={onChange} required />
+            <input id="code" name="code" value={formData.code} onChange={onChange} required />
           </div>
 
           <div className="span-2">
             <label htmlFor="name">Name</label>
-            <input id="name" name="name" value={form.name} onChange={onChange} required />
+            <input id="name" name="name" value={formData.name} onChange={onChange} required />
           </div>
 
           <div>
@@ -110,8 +112,7 @@ const Courses = () => {
               type="number"
               name="credits"
               min="0"
-              max="60"
-              value={form.credits}
+              value={formData.credits}
               onChange={onChange}
               required
             />
@@ -119,7 +120,7 @@ const Courses = () => {
 
           <div>
             <label htmlFor="semester">Semester</label>
-            <select id="semester" name="semester" value={form.semester} onChange={onChange}>
+            <select id="semester" name="semester" value={formData.semester} onChange={onChange}>
               <option value="autumn">Autumn</option>
               <option value="spring">Spring</option>
               <option value="summer">Summer</option>
@@ -128,7 +129,7 @@ const Courses = () => {
 
           <div>
             <label htmlFor="status">Status</label>
-            <select id="status" name="status" value={form.status} onChange={onChange}>
+            <select id="status" name="status" value={formData.status} onChange={onChange}>
               <option value="planned">Planned</option>
               <option value="active">Active</option>
               <option value="completed">Completed</option>
@@ -137,25 +138,12 @@ const Courses = () => {
           </div>
 
           <div>
-            <label htmlFor="targetGrade">Target grade</label>
-            <input
-              id="targetGrade"
-              type="number"
-              name="targetGrade"
-              min="0"
-              max="5"
-              value={form.targetGrade}
-              onChange={onChange}
-            />
-          </div>
-
-          <div>
             <label htmlFor="colour">Colour</label>
             <input
               id="colour"
               type="color"
               name="colour"
-              value={form.colour}
+              value={formData.colour}
               onChange={onChange}
             />
           </div>
@@ -164,6 +152,7 @@ const Courses = () => {
             <button type="submit" className="btn btn-primary">
               {editingId ? 'Save changes' : 'Add course'}
             </button>
+
             {editingId && (
               <button type="button" className="btn btn-ghost" onClick={resetForm}>
                 Cancel
@@ -174,8 +163,9 @@ const Courses = () => {
       </div>
 
       <div className="card">
-        <h2>Your courses ({items.length})</h2>
-        {items.length === 0 ? (
+        <h2>Your courses ({courses.length})</h2>
+
+        {courses.length === 0 ? (
           <p className="muted">No courses yet. Add your first one above.</p>
         ) : (
           <div className="table-wrap">
@@ -187,11 +177,11 @@ const Courses = () => {
                   <th>Credits</th>
                   <th>Semester</th>
                   <th>Status</th>
-                  <th aria-label="actions" />
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((course) => (
+                {courses.map((course) => (
                   <tr key={course._id}>
                     <td>
                       <span className="dot" style={{ background: course.colour }} />
@@ -200,9 +190,7 @@ const Courses = () => {
                     <td>{course.name}</td>
                     <td>{course.credits}</td>
                     <td className="capitalise">{course.semester}</td>
-                    <td>
-                      <span className={`badge badge-${course.status}`}>{course.status}</span>
-                    </td>
+                    <td className="capitalise">{course.status}</td>
                     <td className="row-actions">
                       <button type="button" className="icon-btn" onClick={() => onEdit(course)}>
                         <FaPen />

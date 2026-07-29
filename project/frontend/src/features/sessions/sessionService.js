@@ -1,23 +1,36 @@
-import api from '../../app/api'
+import axios from 'axios'
 
-const getSessions = async (params = {}) => {
-  const { data } = await api.get('/sessions', { params })
-  return data
+const API_URL = '/api/sessions/'
+
+const getConfig = (token) => {
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
 }
 
-const createSession = async (payload) => {
-  const { data } = await api.post('/sessions', payload)
-  return data
+const getSessions = async (courseId, token) => {
+  let url = API_URL
+
+  if (courseId) {
+    url = API_URL + '?course=' + courseId
+  }
+
+  const response = await axios.get(url, getConfig(token))
+  return response.data
 }
 
-const updateSession = async (id, payload) => {
-  const { data } = await api.put(`/sessions/${id}`, payload)
-  return data
+const createSession = async (sessionData, token) => {
+  const response = await axios.post(API_URL, sessionData, getConfig(token))
+  return response.data
 }
 
-const deleteSession = async (id) => {
-  const { data } = await api.delete(`/sessions/${id}`)
-  return data
+const deleteSession = async (id, token) => {
+  const response = await axios.delete(API_URL + id, getConfig(token))
+  return response.data
 }
 
-export default { getSessions, createSession, updateSession, deleteSession }
+const sessionService = { getSessions, createSession, deleteSession }
+
+export default sessionService

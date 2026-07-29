@@ -1,121 +1,114 @@
-const mongoose = require('mongoose')
 const asyncHandler = require('express-async-handler')
 const Session = require('../models/sessionModel')
 const Course = require('../models/courseModel')
 
-const startOfDay = (date) => {
-  const copy = new Date(date)
-  copy.setHours(0, 0, 0, 0)
-  return copy
-}
+const toDateString = (date) => new Date(date).toISOString().slice(0, 10)
 
 const getSummary = asyncHandler(async (req, res) => {
-  const userId = new mongoose.Types.ObjectId(req.user._id)
-  const days = Math.min(Number(req.query.days) || 30, 365)
+  const days = Number(req.query.days) || 30
 
-  const since = startOfDay(new Date())
+  const since = new Date()
+  since.setHours(0, 0, 0, 0)
   since.setDate(since.getDate() - (days - 1))
 
-  const perDay = await Session.aggregate([
-    { $match: { user: userId, date: { $gte: since } } },
-    {
-      $group: {
-        _id: { $dateToString: { format: '%Y-%m-%d', date: '$date' } },
-        minutes: { $sum: '$minutes' },
-      },
-    },
-    { $sort: { _id: 1 } },
-  ])
+  const sessions = await Session.find({
+    user: req.user.id,
+    date: { $gte: since },
+  }).populate('course', 'code name colour')
 
-  const perCourse = await Session.aggregate([
-    { $match: { user: userId, date: { $gte: since } } },
-    { $group: { _id: '$course', minutes: { $sum: '$minutes' }, sessions: { $sum: 1 } } },
-    {
-      $lookup: {
-        from: 'courses',
-        localField: '_id',
-        foreignField: '_id',
-        as: 'course',
-      },
-    },
-    { $unwind: '$course' },
-    {
-      $project: {
-        _id: 0,
-        courseId: '$course._id',
-        code: '$course.code',
-        name: '$course.name',
-        colour: '$course.colour',
-        minutes: 1,
-        sessions: 1,
-      },
-    },
-    { $sort: { minutes: -1 } },
-  ])
+  let totalMinutes = 0
+  let totalFocus = 0
 
-  const perActivity = await Session.aggregate([
-    { $match: { user: userId, date: { $gte: since } } },
-    { $group: { _id: '$activity', minutes: { $sum: '$minutes' } } },
-    { $sort: { minutes: -1 } },
-  ])
+  const minutesPerDay = {}
+  const minutesPerCourse = {}
+  const minutesPerActivity = {}
 
-  const [totals] = await Session.aggregate([
-    { $match: { user: userId, date: { $gte: since } } },
-    {
-      $group: {
-        _id: null,
-        totalMinutes: { $sum: '$minutes' },
-        sessions: { $sum: 1 },
-        averageFocus: { $avg: '$focus' },
-      },
-    },
-  ])
+  sessions.forEach((session) => {
+    totalMinutes = totalMinutes + session.minutes
+    totalFocus = totalFocus + session.focus
 
-  const weekStart = startOfDay(new Date())
-  weekStart.setDate(weekStart.getDate() - 6)
+    const day = toDateString(session.date)
+    minutesPerDay[day] = (minutesPerDay[day] || 0) + session.minutes
 
-  const [week] = await Session.aggregate([
-    { $match: { user: userId, date: { $gte: weekStart } } },
-    { $group: { _id: null, minutes: { $sum: '$minutes' } } },
-  ])
+    if (session.course) {
+      const code = session.course.code
 
-  const activeCourses = await Course.countDocuments({ user: userId, status: 'active' })
+      if (!minutesPerCourse[code]) {
+        minutesPerCourse[code] = { code, colour: session.course.colour, minutes: 0 }
+      }
 
-  const dayMap = new Map(perDay.map((entry) => [entry._id, entry.minutes]))
+      minutesPerCourse[code].minutes = minutesPerCourse[code].minutes + session.minutes
+    }
+
+    minutesPerActivity[session.activity] =
+      (minutesPerActivity[session.activity] || 0) + session.minutes
+  })
+
   const timeline = []
 
-  for (let i = 0; i < days; i += 1) {
+  for (let i = 0; i < days; i++) {
     const day = new Date(since)
     day.setDate(day.getDate() + i)
-    const key = day.toISOString().slice(0, 10)
-    timeline.push({ date: key, minutes: dayMap.get(key) || 0 })
+
+    const key = toDateString(day)
+    timeline.push({ date: key, minutes: minutesPerDay[key] || 0 })
   }
 
-  const studiedDays = [...dayMap.keys()].sort()
   let streak = 0
-  const cursor = startOfDay(new Date())
+  const dayToCheck = new Date()
+  dayToCheck.setHours(0, 0, 0, 0)
 
-  while (studiedDays.includes(cursor.toISOString().slice(0, 10))) {
-    streak += 1
-    cursor.setDate(cursor.getDate() - 1)
+  while (minutesPerDay[toDateString(dayToCheck)]) {
+    streak++
+    dayToCheck.setDate(dayToCheck.getDate() - 1)
   }
 
-  const weekMinutes = week ? week.minutes : 0
+  const weekStart = new Date()
+  weekStart.setHours(0, 0, 0, 0)
+  weekStart.setDate(weekStart.getDate() - 6)
+
+  let weekMinutes = 0
+
+  sessions.forEach((session) => {
+    if (session.date >= weekStart) {
+      weekMinutes = weekMinutes + session.minutes
+    }
+  })
+
   const target = req.user.weeklyTargetMinutes || 0
+  let weeklyProgress = 0
+
+  if (target > 0) {
+    weeklyProgress = Math.round((weekMinutes / target) * 100)
+
+    if (weeklyProgress > 100) {
+      weeklyProgress = 100
+    }
+  }
+
+  const activeCourses = await Course.countDocuments({ user: req.user.id, status: 'active' })
+
+  let averageFocus = 0
+
+  if (sessions.length > 0) {
+    averageFocus = Math.round((totalFocus / sessions.length) * 10) / 10
+  }
 
   res.json({
     rangeDays: days,
-    totalMinutes: totals ? totals.totalMinutes : 0,
-    sessions: totals ? totals.sessions : 0,
-    averageFocus: totals ? Number(totals.averageFocus.toFixed(2)) : 0,
+    totalMinutes,
+    sessions: sessions.length,
+    averageFocus,
     activeCourses,
     streak,
     weekMinutes,
     weeklyTargetMinutes: target,
-    weeklyProgress: target ? Math.min(Math.round((weekMinutes / target) * 100), 100) : 0,
+    weeklyProgress,
     timeline,
-    perCourse,
-    perActivity: perActivity.map((entry) => ({ activity: entry._id, minutes: entry.minutes })),
+    perCourse: Object.values(minutesPerCourse).sort((a, b) => b.minutes - a.minutes),
+    perActivity: Object.keys(minutesPerActivity)
+      .map((activity) => ({ activity, minutes: minutesPerActivity[activity] }))
+      .sort((a, b) => b.minutes - a.minutes),
   })
 })
 

@@ -1,36 +1,47 @@
-import api from '../../app/api'
+import axios from 'axios'
+
+const API_URL = '/api/users/'
 
 const register = async (userData) => {
-  const { data } = await api.post('/users', userData)
+  const response = await axios.post(API_URL, userData)
 
-  if (data.token) {
-    localStorage.setItem('user', JSON.stringify(data))
+  if (response.data) {
+    localStorage.setItem('user', JSON.stringify(response.data))
   }
 
-  return data
+  return response.data
 }
 
 const login = async (userData) => {
-  const { data } = await api.post('/users/login', userData)
+  const response = await axios.post(API_URL + 'login', userData)
 
-  if (data.token) {
-    localStorage.setItem('user', JSON.stringify(data))
+  if (response.data) {
+    localStorage.setItem('user', JSON.stringify(response.data))
   }
 
-  return data
+  return response.data
 }
 
-const updateProfile = async (payload) => {
-  const { data } = await api.put('/users/me', payload)
-  const stored = JSON.parse(localStorage.getItem('user'))
-  const merged = { ...stored, ...data }
-  localStorage.setItem('user', JSON.stringify(merged))
+const updateProfile = async (profileData, token) => {
+  const config = {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  }
 
-  return merged
+  const response = await axios.put(API_URL + 'me', profileData, config)
+
+  const user = JSON.parse(localStorage.getItem('user'))
+  const updatedUser = { ...user, ...response.data }
+  localStorage.setItem('user', JSON.stringify(updatedUser))
+
+  return updatedUser
 }
 
 const logout = () => {
   localStorage.removeItem('user')
 }
 
-export default { register, login, logout, updateProfile }
+const authService = { register, login, logout, updateProfile }
+
+export default authService

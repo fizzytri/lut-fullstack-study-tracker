@@ -2,16 +2,16 @@ import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 import { FaTrash } from 'react-icons/fa'
-import { fetchSessions, addSession, removeSession } from '../features/sessions/sessionSlice'
-import { fetchCourses } from '../features/courses/courseSlice'
+import { getSessions, createSession, deleteSession } from '../features/sessions/sessionSlice'
+import { getCourses } from '../features/courses/courseSlice'
 import Spinner from '../components/Spinner'
 import { formatMinutes, formatDate } from '../utils/format'
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = new Date().toISOString().slice(0, 10)
 
 const emptyForm = {
   course: '',
-  date: today(),
+  date: today,
   minutes: 60,
   activity: 'reading',
   focus: 3,
@@ -19,68 +19,59 @@ const emptyForm = {
 }
 
 const Sessions = () => {
-  const [form, setForm] = useState(emptyForm)
+  const [formData, setFormData] = useState(emptyForm)
   const [filter, setFilter] = useState('')
+
   const dispatch = useDispatch()
-  const { items, isLoading } = useSelector((state) => state.sessions)
-  const { items: courses } = useSelector((state) => state.courses)
+  const { sessions, isLoading } = useSelector((state) => state.sessions)
+  const { courses } = useSelector((state) => state.courses)
 
   useEffect(() => {
-    dispatch(fetchCourses())
+    dispatch(getCourses())
   }, [dispatch])
 
   useEffect(() => {
-    dispatch(fetchSessions(filter ? { course: filter } : {}))
+    dispatch(getSessions(filter))
   }, [dispatch, filter])
 
-  const onChange = (event) =>
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }))
+  const onChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value })
+  }
 
-  const onSubmit = async (event) => {
-    event.preventDefault()
+  const onSubmit = async (e) => {
+    e.preventDefault()
 
-    if (!form.course) {
-      toast.error('Please choose a course')
-      return
+    const sessionData = {
+      ...formData,
+      minutes: Number(formData.minutes),
+      focus: Number(formData.focus),
     }
 
-    const payload = {
-      ...form,
-      minutes: Number(form.minutes),
-      focus: Number(form.focus),
-    }
+    const result = await dispatch(createSession(sessionData))
 
-    const action = await dispatch(addSession(payload))
-
-    if (action.meta.requestStatus === 'fulfilled') {
+    if (result.meta.requestStatus === 'fulfilled') {
       toast.success('Session logged')
-      setForm((prev) => ({ ...emptyForm, course: prev.course }))
+      setFormData({ ...emptyForm, course: formData.course })
     } else {
-      toast.error(action.payload)
+      toast.error(result.payload)
     }
   }
 
-  const onDelete = async (id) => {
-    const action = await dispatch(removeSession(id))
+  let totalMinutes = 0
 
-    if (action.meta.requestStatus === 'fulfilled') {
-      toast.success('Session removed')
-    } else {
-      toast.error(action.payload)
-    }
-  }
-
-  const total = items.reduce((sum, item) => sum + item.minutes, 0)
+  sessions.forEach((session) => {
+    totalMinutes = totalMinutes + session.minutes
+  })
 
   return (
     <section>
       <div className="page-head">
         <div>
           <h1>Study sessions</h1>
-          <p className="muted">{formatMinutes(total)} in the list below.</p>
+          <p className="muted">{formatMinutes(totalMinutes)} in the list below.</p>
         </div>
 
-        <select value={filter} onChange={(event) => setFilter(event.target.value)}>
+        <select value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="">All courses</option>
           {courses.map((course) => (
             <option key={course._id} value={course._id}>
@@ -92,13 +83,20 @@ const Sessions = () => {
 
       <div className="card">
         <h2>Log a session</h2>
+
         {courses.length === 0 ? (
-          <p className="muted">Add a course first, then you can log sessions against it.</p>
+          <p className="muted">Add a course first, then you can log sessions for it.</p>
         ) : (
           <form onSubmit={onSubmit} className="grid-form">
             <div className="span-2">
               <label htmlFor="course">Course</label>
-              <select id="course" name="course" value={form.course} onChange={onChange} required>
+              <select
+                id="course"
+                name="course"
+                value={formData.course}
+                onChange={onChange}
+                required
+              >
                 <option value="">Choose a course</option>
                 {courses.map((course) => (
                   <option key={course._id} value={course._id}>
@@ -110,7 +108,7 @@ const Sessions = () => {
 
             <div>
               <label htmlFor="date">Date</label>
-              <input id="date" type="date" name="date" value={form.date} onChange={onChange} />
+              <input id="date" type="date" name="date" value={formData.date} onChange={onChange} />
             </div>
 
             <div>
@@ -121,7 +119,7 @@ const Sessions = () => {
                 name="minutes"
                 min="1"
                 max="1440"
-                value={form.minutes}
+                value={formData.minutes}
                 onChange={onChange}
                 required
               />
@@ -129,7 +127,7 @@ const Sessions = () => {
 
             <div>
               <label htmlFor="activity">Activity</label>
-              <select id="activity" name="activity" value={form.activity} onChange={onChange}>
+              <select id="activity" name="activity" value={formData.activity} onChange={onChange}>
                 <option value="lecture">Lecture</option>
                 <option value="reading">Reading</option>
                 <option value="exercise">Exercise</option>
@@ -140,17 +138,16 @@ const Sessions = () => {
             </div>
 
             <div>
-              <label htmlFor="focus">Focus (1-5)</label>
+              <label htmlFor="focus">Focus: {formData.focus} / 5</label>
               <input
                 id="focus"
                 type="range"
                 name="focus"
                 min="1"
                 max="5"
-                value={form.focus}
+                value={formData.focus}
                 onChange={onChange}
               />
-              <span className="muted">{form.focus} / 5</span>
             </div>
 
             <div className="span-3">
@@ -158,8 +155,7 @@ const Sessions = () => {
               <input
                 id="notes"
                 name="notes"
-                maxLength={500}
-                value={form.notes}
+                value={formData.notes}
                 onChange={onChange}
                 placeholder="What did you work on?"
               />
@@ -176,9 +172,10 @@ const Sessions = () => {
 
       <div className="card">
         <h2>History</h2>
+
         {isLoading ? (
           <Spinner />
-        ) : items.length === 0 ? (
+        ) : sessions.length === 0 ? (
           <p className="muted">Nothing logged yet.</p>
         ) : (
           <div className="table-wrap">
@@ -191,26 +188,26 @@ const Sessions = () => {
                   <th>Time</th>
                   <th>Focus</th>
                   <th>Notes</th>
-                  <th aria-label="actions" />
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
-                {items.map((session) => (
+                {sessions.map((session) => (
                   <tr key={session._id}>
                     <td>{formatDate(session.date)}</td>
                     <td>
-                      <span className="dot" style={{ background: session.course?.colour }} />
-                      {session.course?.code}
+                      <span className="dot" style={{ background: session.course.colour }} />
+                      {session.course.code}
                     </td>
                     <td className="capitalise">{session.activity}</td>
                     <td>{formatMinutes(session.minutes)}</td>
                     <td>{session.focus}/5</td>
                     <td className="notes-cell">{session.notes}</td>
-                    <td className="row-actions">
+                    <td>
                       <button
                         type="button"
                         className="icon-btn danger"
-                        onClick={() => onDelete(session._id)}
+                        onClick={() => dispatch(deleteSession(session._id))}
                       >
                         <FaTrash />
                       </button>

@@ -6,7 +6,6 @@ const goalSchema = mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       required: true,
       ref: 'User',
-      index: true,
     },
     course: {
       type: mongoose.Schema.Types.ObjectId,
@@ -15,14 +14,11 @@ const goalSchema = mongoose.Schema(
     },
     title: {
       type: String,
-      required: [true, 'Please add a goal title'],
-      trim: true,
-      maxlength: [120, 'Title cannot be longer than 120 characters'],
+      required: [true, 'Please add a title'],
     },
     targetMinutes: {
       type: Number,
       required: [true, 'Please add a target in minutes'],
-      min: [1, 'Target must be at least 1 minute'],
     },
     deadline: {
       type: Date,
@@ -33,7 +29,9 @@ const goalSchema = mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 )
 
 module.exports = mongoose.model('Goal', goalSchema)

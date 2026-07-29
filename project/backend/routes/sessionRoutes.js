@@ -8,9 +8,7 @@ const {
 } = require('../controllers/sessionController')
 const { protect } = require('../middleware/authMiddleware')
 
-router.use(protect)
-
-router.route('/').get(getSessions).post(createSession)
-router.route('/:id').put(updateSession).delete(deleteSession)
+router.route('/').get(protect, getSessions).post(protect, createSession)
+router.route('/:id').put(protect, updateSession).delete(protect, deleteSession)
 
 module.exports = router
