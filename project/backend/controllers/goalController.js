@@ -3,11 +3,13 @@ const Goal = require('../models/goalModel')
 const Session = require('../models/sessionModel')
 
 const addProgress = (goal, sessions) => {
+  const goalStart = new Date(goal.createdAt)
+  goalStart.setHours(0, 0, 0, 0)
+
   let achievedMinutes = 0
 
   sessions.forEach((session) => {
-    const inTime = session.date >= goal.createdAt && session.date <= goal.deadline
-
+    const inTime = session.date >= goalStart && session.date <= goal.deadline
     const rightCourse =
       goal.course === null || session.course.toString() === goal.course._id.toString()
 
