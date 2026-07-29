@@ -21,4 +21,4 @@ npm start
 
 Modules 2 and 5 need MongoDB running.
 
-The actual project I built after these is in [`../project`](../project).
+The  project I built after these is in [`../project`](../project).
