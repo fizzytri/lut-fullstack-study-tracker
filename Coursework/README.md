@@ -1,7 +1,7 @@
 # Coursework
 
 The exercise projects I did while going through the tutorial series in the Moodle course
-*Software Development Skills: Full-Stack*. One folder per module, each with its own `NOTES.md`.
+*Software Development Skills: Full-Stack*. One folder per module.
 
 | Module | Folder | Topic |
 | --- | --- | --- |
