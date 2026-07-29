@@ -1,0 +1,22 @@
+GET http://localhost:4003/api/members
+
+###
+GET http://localhost:4003/api/members?status=active&limit=1
+
+###
+GET http://localhost:4003/api/members/2
+
+###
+POST http://localhost:4003/api/members
+Content-Type: application/json
+
+{ "name": "Linus Torvalds", "email": "linus@example.com" }
+
+###
+PUT http://localhost:4003/api/members/1
+Content-Type: application/json
+
+{ "name": "Ada King", "email": "ada.king@example.com", "status": "inactive" }
+
+###
+DELETE http://localhost:4003/api/members/3

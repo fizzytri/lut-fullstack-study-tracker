@@ -1,0 +1,13 @@
+{
+  "name": "lut-fullstack-coursework",
+  "version": "1.0.0",
+  "description": "Coursework and project for LUT Software Development Skills: Full-Stack",
+  "private": true,
+  "scripts": {
+    "install-all": "npm install --prefix project/backend && npm install --prefix project/frontend",
+    "server": "npm start --prefix project/backend",
+    "client": "npm run dev --prefix project/frontend",
+    "seed": "npm run seed --prefix project/backend",
+    "build": "npm run build --prefix project/frontend"
+  }
+}

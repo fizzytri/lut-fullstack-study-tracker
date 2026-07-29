@@ -1,0 +1,11 @@
+{
+  "name": "coursework-01-nodejs",
+  "version": "1.0.0",
+  "description": "Node.js crash course exercises: modules, fs, events, streams and a bare http server",
+  "main": "index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node index.js",
+    "server": "node server.js"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "coursework-02-mongodb",
+  "version": "1.0.0",
+  "description": "MongoDB and Mongoose exercises: CRUD, queries, relations and aggregation",
+  "main": "crud.js",
+  "type": "commonjs",
+  "scripts": {
+    "crud": "node crud.js",
+    "aggregate": "node aggregate.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.5.1"
+  }
+}
