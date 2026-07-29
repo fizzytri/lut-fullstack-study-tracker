@@ -1,6 +1,6 @@
 # LUT Software Development Skills: Full-Stack
 
-My coursework and project for the LUT anytime course
+My (Diako Jalal) coursework and project for the LUT anytime course
 *Software Development Skills: Full-Stack (2025-26)*.
 
 - `Coursework/` - the exercises I did while going through the five tutorial modules
