@@ -74,8 +74,8 @@ project/
 ### 1. Install dependencies
 
 ```bash
-git clone <this-repository-url>
-cd <repository-folder>
+git clone https://github.com/fizzytri/lut-fullstack-study-tracker.git
+cd lut-fullstack-study-tracker
 npm run install-all
 ```
 
