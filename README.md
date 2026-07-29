@@ -72,9 +72,3 @@ Then open http://localhost:5173
 - The token is saved in localStorage because that is what the tutorial does. I have read that a
   httpOnly cookie is safer.
 
-## Credit
-
-I followed the tutorials linked in the Moodle course, mainly the MERN example project
-(https://github.com/bradtraversy/mern-tutorial) and the Express crash course
-(https://github.com/bradtraversy/express-crash). The course says that example code can be reused.
-The Study Tracker app itself is mine.
